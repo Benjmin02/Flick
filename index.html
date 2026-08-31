@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Benny Hub AI — Talk to AI in any language</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,500;0,600;1,500&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0F1720;
+    --surface:#161F2B;
+    --surface-2:#1D2836;
+    --line:#2A3646;
+    --amber:#F2A93B;
+    --teal:#4FD1C5;
+    --text:#ECE8DD;
+    --muted:#8B93A1;
+    --danger:#E8695A;
+    --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:
+      radial-gradient(1200px 600px at 90% -10%, rgba(79,209,197,0.08), transparent 60%),
+      radial-gradient(900px 500px at -10% 110%, rgba(242,169,59,0.07), transparent 60%),
+      var(--ink);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    display:flex;
+    flex-direction:column;
+    overflow:hidden;
+  }
+  ::selection{background:var(--amber);color:#1a1200;}
+
+  /* ---------- TOP BAR ---------- */
+  header{
+    display:flex;
+    align-items:center;
+    gap:20px;
+    padding:14px 20px;
+    border-bottom:1px solid var(--line);
+    background:rgba(15,23,32,0.85);
+    backdrop-filter:blur(8px);
+    z-index:20;
+  }
+  .logo{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-style:italic;
+    font-size:22px;
+    letter-spacing:0.2px;
+    color:var(--text);
+    white-space:nowrap;
+    display:flex;
+    align-items:baseline;
+    gap:6px;
+  }
+  .logo .dot{color:var(--amber);}
+
+  /* split-flap language board */
+  .board-wrap{
+    flex:1;
+    min-width:0;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .board-label{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10px;
+    letter-spacing:1.5px;
+    color:var(--muted);
+    text-transform:uppercase;
+    white-space:nowrap;
+    padding-right:6px;
+    border-right:1px solid var(--line);
+    margin-right:4px;
+  }
+  .board{
+    display:flex;
+    gap:6px;
+    overflow-x:auto;
+    scrollbar-width:thin;
+    padding:2px;
+  }
+  .board::-webkit-scrollbar{height:5px;}
+  .board::-webkit-scrollbar-thumb{background:var(--line);border-radius:4px;}
+  .flap{
+    flex:none;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:13px;
+    color:var(--muted);
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:6px;
+    padding:7px 12px;
+    cursor:pointer;
+    position:relative;
+    overflow:hidden;
+    transition:border-color .15s, color .15s;
+  }
+  .flap:hover{border-color:var(--teal);color:var(--text);}
+  .flap.active{
+    color:#1a1200;
+    background:var(--amber);
+    border-color:var(--amber);
+    font-weight:500;
+  }
+  .flap.flipping::after{
+    content:'';
+    position:absolute;inset:0;
+    background:var(--text);
+    animation:flip .35s ease-out;
+  }
+  @keyframes flip{
+    0%{transform:scaleY(1);opacity:.9;}
+    50%{transform:scaleY(0.05);opacity:1;}
+    100%{transform:scaleY(0);opacity:0;}
+  }
+
+  .icon-btn{
+    background:var(--surface);
+    border:1px solid var(--line);
+    color:var(--muted);
+    width:38px;height:38px;
+    border-radius:8px;
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer;
+    flex:none;
+    transition:color .15s,border-color .15s;
+  }
+  .icon-btn:hover{color:var(--text);border-color:var(--teal);}
+
+  /* ---------- BODY LAYOUT ---------- */
+  .layout{
+    flex:1;
+    display:flex;
+    min-height:0;
+  }
+  aside{
+    width:220px;
+    border-right:1px solid var(--line);
+    background:rgba(22,31,43,0.5);
+    padding:16px 12px;
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+  }
+  .new-chat{
+    display:flex;align-items:center;gap:8px;
+    background:var(--surface-2);
+    border:1px solid var(--line);
+    color:var(--text);
+    padding:10px 12px;
+    border-radius:8px;
+    font-size:13px;
+    font-family:'Inter';
+    cursor:pointer;
+    margin-bottom:8px;
+    transition:border-color .15s;
+  }
+  .new-chat:hover{border-color:var(--amber);}
+  .convo{
+    font-size:13px;
+    color:var(--muted);
+    padding:9px 12px;
+    border-radius:8px;
+    cursor:pointer;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .convo:hover{background:var(--surface);color:var(--text);}
+  .convo.active{background:var(--surface-2);color:var(--text);border-left:2px solid var(--amber);}
+  .sidebar-foot{
+    margin-top:auto;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10px;
+    color:var(--muted);
+    line-height:1.6;
+    padding:8px 4px;
+    border-top:1px solid var(--line);
+  }
+
+  main{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    min-width:0;
+  }
+  .chat{
+    flex:1;
+    overflow-y:auto;
+    padding:28px 0 12px;
+    display:flex;
+    flex-direction:column;
+    gap:18px;
+  }
+  .chat::-webkit-scrollbar{width:6px;}
+  .chat::-webkit-scrollbar-thumb{background:var(--line);border-radius:4px;}
+
+  .hero{
+    max-width:640px;
+    margin:8vh auto;
+    text-align:center;
+    padding:0 20px;
+  }
+  .hero h1{
+    font-family:'Fraunces',serif;
+    font-weight:500;
+    font-size:clamp(28px,4vw,42px);
+    line-height:1.15;
+    margin:0 0 12px;
+  }
+  .hero h1 em{color:var(--amber);font-style:italic;}
+  .hero p{color:var(--muted);font-size:15px;line-height:1.6;margin:0 auto;max-width:480px;}
+
+  .row{
+    display:flex;
+    padding:0 20px;
+    max-width:820px;
+    width:100%;
+    margin:0 auto;
+  }
+  .row.user{justify-content:flex-end;}
+  .bubble{
+    max-width:72%;
+    padding:12px 16px;
+    border-radius:14px;
+    font-size:14.5px;
+    line-height:1.55;
+    white-space:pre-wrap;
+  }
+  .row.user .bubble{background:var(--amber);color:#1a1200;border-bottom-right-radius:4px;}
+  .row.assistant .bubble{background:var(--surface);border:1px solid var(--line);border-bottom-left-radius:4px;}
+  .row.assistant .bubble.pending{color:var(--muted);}
+  .row.error .bubble{background:rgba(232,105,90,0.1);border:1px solid var(--danger);color:#f3c9c3;}
+  .avatar-tag{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10px;
+    color:var(--muted);
+    text-transform:uppercase;
+    letter-spacing:1px;
+    margin-bottom:4px;
+  }
+
+  .composer{
+    border-top:1px solid var(--line);
+    padding:14px 20px 18px;
+  }
+  .composer-inner{
+    max-width:820px;
+    margin:0 auto;
+    display:flex;
+    align-items:flex-end;
+    gap:10px;
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:8px 8px 8px 16px;
+  }
+  .composer-inner:focus-within{border-color:var(--teal);}
+  textarea{
+    flex:1;
+    resize:none;
+    background:transparent;
+    border:none;
+    outline:none;
+    color:var(--text);
+    font-family:'Inter';
+    font-size:14.5px;
+    line-height:1.5;
+    max-height:160px;
+    padding:8px 0;
+  }
+  textarea::placeholder{color:var(--muted);}
+  .send-btn{
+    background:var(--amber);
+    border:none;
+    color:#1a1200;
+    width:38px;height:38px;
+    border-radius:9px;
+    flex:none;
+    cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    transition:transform .1s, opacity .15s;
+  }
+  .send-btn:hover{transform:translateY(-1px);}
+  .send-btn:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+  .composer-hint{
+    max-width:820px;
+    margin:8px auto 0;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10.5px;
+    color:var(--muted);
+    text-align:center;
+  }
+  .composer-hint button{
+    background:none;border:none;color:var(--teal);cursor:pointer;
+    font-family:inherit;font-size:inherit;text-decoration:underline;
+    padding:0;
+  }
+
+  /* ---------- MODAL ---------- */
+  .modal-backdrop{
+    position:fixed;inset:0;
+    background:rgba(6,9,13,0.7);
+    display:none;
+    align-items:center;justify-content:center;
+    z-index:100;
+    padding:20px;
+  }
+  .modal-backdrop.open{display:flex;}
+  .modal{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:16px;
+    width:100%;
+    max-width:460px;
+    max-height:88vh;
+    overflow-y:auto;
+    padding:26px;
+  }
+  .modal h2{
+    font-family:'Fraunces',serif;
+    font-weight:500;
+    font-size:22px;
+    margin:0 0 4px;
+  }
+  .modal .sub{color:var(--muted);font-size:13px;margin:0 0 20px;line-height:1.5;}
+  .field{margin-bottom:16px;}
+  .field label{
+    display:block;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10.5px;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    color:var(--muted);
+    margin-bottom:6px;
+  }
+  select, input[type=text], input[type=password]{
+    width:100%;
+    background:var(--surface-2);
+    border:1px solid var(--line);
+    color:var(--text);
+    padding:10px 12px;
+    border-radius:8px;
+    font-family:'Inter';
+    font-size:13.5px;
+    outline:none;
+  }
+  select:focus, input:focus{border-color:var(--teal);}
+  .provider-note{
+    font-size:12px;
+    color:var(--muted);
+    line-height:1.5;
+    margin-top:6px;
+  }
+  .provider-note a{color:var(--teal);}
+  .modal-actions{
+    display:flex;
+    gap:10px;
+    margin-top:22px;
+  }
+  .btn{
+    flex:1;
+    padding:11px;
+    border-radius:8px;
+    border:1px solid var(--line);
+    background:transparent;
+    color:var(--text);
+    cursor:pointer;
+    font-family:'Inter';
+    font-size:13.5px;
+    font-weight:500;
+  }
+  .btn.primary{background:var(--amber);color:#1a1200;border-color:var(--amber);}
+  .key-warning{
+    background:rgba(242,169,59,0.08);
+    border:1px solid rgba(242,169,59,0.35);
+    border-radius:8px;
+    padding:10px 12px;
+    font-size:11.5px;
+    color:var(--amber);
+    line-height:1.5;
+    margin-bottom:18px;
+  }
+
+  @media (max-width:760px){
+    aside{display:none;}
+    .board-label{display:none;}
+    .bubble{max-width:88%;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Benny Hub AI<span class="dot">.</span></div>
+  <div class="board-wrap">
+    <span class="board-label" id="boardLabel">reply in</span>
+    <div class="board" id="langBoard"></div>
+  </div>
+  <button class="icon-btn" id="settingsBtn" title="Settings">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+  </button>
+</header>
+
+<div class="layout">
+  <aside>
+    <div class="new-chat" id="newChatBtn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+      <span id="newChatLabel">New chat</span>
+    </div>
+    <div id="convoList"></div>
+    <div class="sidebar-foot" id="sidebarFoot">SAVED IN THIS BROWSER<br>chats persist on reload</div>
+  </aside>
+
+  <main>
+    <div class="chat" id="chat">
+      <div class="hero" id="hero">
+        <h1>Speak your language.<br><em>Any</em> language.</h1>
+        <p id="heroText">Pick a language from the board above, add your own free API key in Settings, and start talking. Nothing is stored on a server — it's all right here in your browser.</p>
+      </div>
+    </div>
+
+    <div class="composer">
+      <div class="composer-inner">
+        <textarea id="input" rows="1" placeholder="Message Benny Hub AI…"></textarea>
+        <button class="send-btn" id="sendBtn" title="Send">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7Z"/></svg>
+        </button>
+      </div>
+      <div class="composer-hint" id="composerHint">No API key set — <button id="openSettingsLink">add one in Settings</button> to start chatting.</div>
+    </div>
+  </main>
+</div>
+
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal">
+    <h2>Settings</h2>
+    <p class="sub">Add your own free API key for any provider below. Each key is kept only in this browser tab's memory — never sent anywhere except that provider's own servers.</p>
+
+    <div class="key-warning">
+      This is a client-only page: whichever key you use travels in every request made from this browser. Fine for personal or local use — for a public site, put a small server-side proxy in front of your key instead of shipping it to visitors.
+    </div>
+
+    <div class="field">
+      <label>Active provider</label>
+      <select id="providerSelect"></select>
+      <div class="provider-note" id="providerNote"></div>
+    </div>
+
+    <div class="field">
+      <label>Model</label>
+      <input type="text" id="modelInput">
+    </div>
+
+    <div id="providerKeyFields"></div>
+
+    <div class="modal-actions">
+      <button class="btn" id="cancelBtn">Cancel</button>
+      <button class="btn primary" id="saveSettingsBtn">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============== CONFIG ============== */
+/* Point this at your deployed proxy worker (see proxy-worker.js).
+   Leave empty to fall back to "bring your own key" mode only. */
+const CONFIG = {
+  PROXY_URL: '', // e.g. 'https://benny-hub-ai-proxy.yourname.workers.dev'
+};
+
+/* ============== LANGUAGE DATA ============== */
+const LANGS = [
+  {code:'no', native:'Norsk', instruct:'Norwegian'},
+  {code:'en', native:'English', instruct:'English'},
+  {code:'ru', native:'Русский', instruct:'Russian'},
+];
+
+/* UI string translations for a handful of chrome elements */
+const UI = {
+  en:{boardLabel:'reply in', newChat:'New chat', placeholder:'Message Benny Hub AI…', hero:"Pick a language from the board above, add your own free API key in Settings, and start talking. Nothing is stored on a server — it's all right here in your browser.", noKey:'No API key set — ', addKey:'add one in Settings', foot:'SAVED IN THIS BROWSER\nchats persist on reload'},
+  ru:{boardLabel:'отвечать на', newChat:'Новый чат', placeholder:'Сообщение для Benny Hub AI…', hero:'Выберите язык выше, добавьте бесплатный API-ключ в настройках и начните общение. Ничего не хранится на сервере.', noKey:'API-ключ не задан — ', addKey:'добавить в настройках', foot:'СОХРАНЕНО В БРАУЗЕРЕ\nчаты сохраняются при перезагрузке'},
+  no:{boardLabel:'svar på', newChat:'Ny samtale', placeholder:'Melding til Benny Hub AI…', hero:'Velg et språk ovenfor, legg til din gratis API-nøkkel i Innstillinger, og begynn å snakke. Ingenting lagres på en server.', noKey:'Ingen API-nøkkel — ', addKey:'legg til i Innstillinger', foot:'LAGRET I DENNE NETTLESEREN\nsamtaler bevares ved omlasting'},
+};
+
+/* ============== SHARED PROXY ============== */
+// Point this at your deployed Worker URL (see worker.js) once you've run
+// `wrangler deploy`. Until then it's empty and the site falls back to
+// asking visitors for their own key.
+const PROXY_URL = "/api/chat"; // same-origin — works once _worker.js is deployed alongside this file
+
+async function callSharedProxy(messages){
+  const res = await fetch(PROXY_URL, {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ messages })
+  });
+  const data = await res.json();
+  if(!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+  return data.reply;
+}
+
+/* ============== CHAT PERSISTENCE (this browser only) ============== */
+const STORAGE_KEY = 'benny_hub_ai_conversations';
+
+function saveConversations(){
+  try{
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      conversations: state.conversations,
+      activeConvo: state.activeConvo,
+      nextId: state.nextId,
+    }));
+  }catch(e){ console.warn('Could not save chat history:', e); }
+}
+
+function loadConversations(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return false;
+    const saved = JSON.parse(raw);
+    if(saved.conversations?.length){
+      state.conversations = saved.conversations;
+      state.activeConvo = saved.activeConvo;
+      state.nextId = saved.nextId;
+      return true;
+    }
+  }catch(e){ console.warn('Could not load chat history:', e); }
+  return false;
+}
+
+/* ============== PROVIDERS ============== */
+const PROVIDERS = {
+  openrouter: {
+    label:'OpenRouter (free models)',
+    defaultModel:'openrouter/free',
+    note:'Create a free account at <a href="https://openrouter.ai/keys" target="_blank" rel="noopener">openrouter.ai/keys</a> — no card required. Use model id <code>openrouter/free</code> or any id ending in <code>:free</code>.',
+    send: async (key, model, messages) => {
+      const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method:'POST',
+        headers:{
+          'Authorization':`Bearer ${key}`,
+          'Content-Type':'application/json'
+        },
+        body: JSON.stringify({ model, messages })
+      });
+      const data = await res.json();
+      if(!res.ok) throw new Error(data.error?.message || `HTTP ${res.status}`);
+      return data.choices?.[0]?.message?.content ?? '(empty response)';
+    }
+  },
+  groq: {
+    label:'Groq (free tier)',
+    defaultModel:'openai/gpt-oss-120b',
+    note:'Get a free key at <a href="https://console.groq.com/keys" target="_blank" rel="noopener">console.groq.com/keys</a>. Very fast inference, generous free rate limits.',
+    send: async (key, model, messages) => {
+      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method:'POST',
+        headers:{
+          'Authorization':`Bearer ${key}`,
+          'Content-Type':'application/json'
+        },
+        body: JSON.stringify({ model, messages })
+      });
+      const data = await res.json();
+      if(!res.ok) throw new Error(data.error?.message || `HTTP ${res.status}`);
+      return data.choices?.[0]?.message?.content ?? '(empty response)';
+    }
+  },
+  gemini: {
+    label:'Google Gemini (free tier)',
+    defaultModel:'gemini-2.0-flash',
+    note:'Grab a free key at <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a>. Generous free daily quota.',
+    send: async (key, model, messages) => {
+      const sys = messages.find(m=>m.role==='system');
+      const rest = messages.filter(m=>m.role!=='system');
+      const contents = rest.map(m=>({role: m.role==='assistant'?'model':'user', parts:[{text:m.content}]}));
+      const body = { contents };
+      if(sys) body.systemInstruction = { parts:[{text:sys.content}] };
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`, {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(body)
+      });
+      const data = await res.json();
+      if(!res.ok) throw new Error(data.error?.message || `HTTP ${res.status}`);
+      return data.candidates?.[0]?.content?.parts?.[0]?.text ?? '(empty response)';
+    }
+  },
+  huggingface: {
+    label:'Hugging Face (free inference)',
+    defaultModel:'meta-llama/Llama-3.2-3B-Instruct',
+    note:'Free key at <a href="https://huggingface.co/settings/tokens" target="_blank" rel="noopener">huggingface.co/settings/tokens</a>. Free-tier models can be slow to cold-start.',
+    send: async (key, model, messages) => {
+      const res = await fetch(`https://api-inference.huggingface.co/models/${model}/v1/chat/completions`, {
+        method:'POST',
+        headers:{
+          'Authorization':`Bearer ${key}`,
+          'Content-Type':'application/json'
+        },
+        body: JSON.stringify({ model, messages })
+      });
+      const data = await res.json();
+      if(!res.ok) throw new Error(data.error?.message || data.error || `HTTP ${res.status}`);
+      return data.choices?.[0]?.message?.content ?? '(empty response)';
+    }
+  }
+};
+
+/* ============== STATE ============== */
+let state = {
+  lang: 'no',
+  provider: 'openrouter',
+  model: PROVIDERS.openrouter.defaultModel,
+  apiKeys: { openrouter:'', groq:'', gemini:'', huggingface:'' },
+  conversations: [{ id: 1, title: 'New chat', messages: [] }],
+  activeConvo: 1,
+  nextId: 2,
+};
+
+/* ============== DOM refs ============== */
+const langBoard = document.getElementById('langBoard');
+const boardLabel = document.getElementById('boardLabel');
+const chatEl = document.getElementById('chat');
+const heroEl = document.getElementById('hero');
+const heroText = document.getElementById('heroText');
+const input = document.getElementById('input');
+const sendBtn = document.getElementById('sendBtn');
+const composerHint = document.getElementById('composerHint');
+const newChatBtn = document.getElementById('newChatBtn');
+const newChatLabel = document.getElementById('newChatLabel');
+const convoList = document.getElementById('convoList');
+const sidebarFoot = document.getElementById('sidebarFoot');
+
+const modalBackdrop = document.getElementById('modalBackdrop');
+const settingsBtn = document.getElementById('settingsBtn');
+const cancelBtn = document.getElementById('cancelBtn');
+const saveSettingsBtn = document.getElementById('saveSettingsBtn');
+const providerSelect = document.getElementById('providerSelect');
+const providerNote = document.getElementById('providerNote');
+const modelInput = document.getElementById('modelInput');
+const providerKeyFields = document.getElementById('providerKeyFields');
+
+/* ============== RENDER: language board ============== */
+function renderBoard(){
+  langBoard.innerHTML = '';
+  LANGS.forEach(l=>{
+    const btn = document.createElement('button');
+    btn.className = 'flap' + (state.lang===l.code ? ' active':'');
+    btn.textContent = l.native;
+    btn.title = l.instruct;
+    btn.onclick = ()=>{
+      if(state.lang===l.code) return;
+      state.lang = l.code;
+      btn.classList.add('flipping');
+      setTimeout(()=>btn.classList.remove('flipping'),350);
+      renderBoard();
+      applyUI();
+    };
+    langBoard.appendChild(btn);
+  });
+}
+
+/* ============== UI TRANSLATION ============== */
+function applyUI(){
+  const t = UI[state.lang] || UI.en;
+  boardLabel.textContent = t.boardLabel;
+  newChatLabel.textContent = t.newChat;
+  input.placeholder = t.placeholder;
+  heroText.textContent = t.hero;
+  sidebarFoot.innerHTML = t.foot.replace('\n','<br>');
+  updateComposerHint();
+}
+
+function updateComposerHint(){
+  const t = UI[state.lang] || UI.en;
+  if(PROXY_URL){
+    composerHint.textContent = 'Shared access — no key needed';
+    return;
+  }
+  if(!state.apiKeys[state.provider]){
+    composerHint.innerHTML = `${t.noKey}<button id="openSettingsLink">${t.addKey}</button>`;
+    document.getElementById('openSettingsLink').onclick = openModal;
+  } else {
+    composerHint.textContent = `${PROVIDERS[state.provider].label} · ${state.model}`;
+  }
+}
+
+/* ============== CONVERSATIONS ============== */
+function activeConvo(){
+  return state.conversations.find(c=>c.id===state.activeConvo);
+}
+
+function renderConvoList(){
+  convoList.innerHTML = '';
+  [...state.conversations].reverse().forEach(c=>{
+    const d = document.createElement('div');
+    d.className = 'convo' + (c.id===state.activeConvo ? ' active':'');
+    d.textContent = c.title;
+    d.onclick = ()=>{ state.activeConvo = c.id; renderConvoList(); renderChat(); };
+    convoList.appendChild(d);
+  });
+}
+
+function renderChat(){
+  chatEl.innerHTML = '';
+  const convo = activeConvo();
+  if(convo.messages.length===0){
+    chatEl.appendChild(heroEl);
+    return;
+  }
+  convo.messages.forEach(m=>{
+    chatEl.appendChild(renderRow(m));
+  });
+  chatEl.scrollTop = chatEl.scrollHeight;
+}
+
+function renderRow(m){
+  const row = document.createElement('div');
+  row.className = 'row ' + (m.role==='user' ? 'user' : m.role==='error' ? 'error' : 'assistant');
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble' + (m.pending ? ' pending' : '');
+  bubble.textContent = m.content;
+  row.appendChild(bubble);
+  return row;
+}
+
+newChatBtn.onclick = ()=>{
+  const id = state.nextId++;
+  state.conversations.push({ id, title:'New chat', messages:[] });
+  state.activeConvo = id;
+  renderConvoList();
+  renderChat();
+  saveConversations();
+};
+
+/* ============== SENDING MESSAGES ============== */
+function autoGrow(){
+  input.style.height = 'auto';
+  input.style.height = Math.min(input.scrollHeight, 160) + 'px';
+}
+input.addEventListener('input', autoGrow);
+input.addEventListener('keydown', e=>{
+  if(e.key==='Enter' && !e.shiftKey){
+    e.preventDefault();
+    handleSend();
+  }
+});
+sendBtn.addEventListener('click', handleSend);
+
+async function handleSend(){
+  const text = input.value.trim();
+  if(!text) return;
+  const usingProxy = !!PROXY_URL;
+  const activeKey = state.apiKeys[state.provider];
+  if(!usingProxy && !activeKey){ openModal(); return; }
+
+  const convo = activeConvo();
+  if(convo.messages.length===0){
+    convo.title = text.slice(0,28) + (text.length>28?'…':'');
+  }
+  convo.messages.push({ role:'user', content:text });
+  input.value = '';
+  autoGrow();
+  renderChat();
+  renderConvoList();
+  saveConversations();
+
+  const langMeta = LANGS.find(l=>l.code===state.lang);
+  const sysMsg = {
+    role:'system',
+    content:`You are Benny Hub AI, a friendly multilingual assistant. Always reply in ${langMeta.instruct}, regardless of what language the user writes in, unless they explicitly ask you to switch languages.`
+  };
+  const pendingMsg = { role:'assistant', content:'…', pending:true };
+  convo.messages.push(pendingMsg);
+  renderChat();
+
+  sendBtn.disabled = true;
+  try{
+    const history = convo.messages
+      .filter(m=>!m.pending && m.role!=='error')
+      .map(m=>({role:m.role, content:m.content}));
+    let reply;
+    if(usingProxy){
+      try{
+        reply = await callSharedProxy([sysMsg, ...history]);
+      }catch(proxyErr){
+        if(activeKey){
+          const provider = PROVIDERS[state.provider];
+          reply = await provider.send(activeKey, state.model, [sysMsg, ...history]);
+        } else {
+          throw proxyErr;
+        }
+      }
+    } else {
+      const provider = PROVIDERS[state.provider];
+      reply = await provider.send(activeKey, state.model, [sysMsg, ...history]);
+    }
+    pendingMsg.content = reply;
+    pendingMsg.pending = false;
+  }catch(err){
+    convo.messages.pop();
+    convo.messages.push({ role:'error', content: `Request failed: ${err.message}` });
+  }
+  sendBtn.disabled = false;
+  renderChat();
+  saveConversations();
+}
+
+/* ============== SETTINGS MODAL ============== */
+function populateProviderSelect(){
+  providerSelect.innerHTML = '';
+  Object.entries(PROVIDERS).forEach(([key,p])=>{
+    const opt = document.createElement('option');
+    opt.value = key;
+    opt.textContent = p.label;
+    providerSelect.appendChild(opt);
+  });
+  providerSelect.value = state.provider;
+  updateProviderNote();
+}
+function updateProviderNote(){
+  const p = PROVIDERS[providerSelect.value];
+  providerNote.innerHTML = p.note;
+  modelInput.value = state.provider===providerSelect.value ? state.model : p.defaultModel;
+}
+providerSelect.addEventListener('change', updateProviderNote);
+
+// One "add API key here" field per provider, all visible at once.
+function renderProviderKeyFields(){
+  providerKeyFields.innerHTML = '';
+  Object.entries(PROVIDERS).forEach(([key,p])=>{
+    const field = document.createElement('div');
+    field.className = 'field';
+    const label = document.createElement('label');
+    label.textContent = `${p.label} — API key`;
+    const input = document.createElement('input');
+    input.type = 'password';
+    input.id = `key-${key}`;
+    input.placeholder = 'Paste your key here';
+    input.value = state.apiKeys[key] || '';
+    field.appendChild(label);
+    field.appendChild(input);
+    providerKeyFields.appendChild(field);
+  });
+}
+
+function openModal(){
+  populateProviderSelect();
+  renderProviderKeyFields();
+  modalBackdrop.classList.add('open');
+}
+function closeModal(){ modalBackdrop.classList.remove('open'); }
+
+settingsBtn.onclick = openModal;
+cancelBtn.onclick = closeModal;
+modalBackdrop.addEventListener('click', e=>{ if(e.target===modalBackdrop) closeModal(); });
+
+saveSettingsBtn.onclick = ()=>{
+  state.provider = providerSelect.value;
+  state.model = modelInput.value.trim() || PROVIDERS[state.provider].defaultModel;
+  Object.keys(PROVIDERS).forEach(key=>{
+    const input = document.getElementById(`key-${key}`);
+    if(input) state.apiKeys[key] = input.value.trim();
+  });
+  updateComposerHint();
+  saveConversations();
+  closeModal();
+};
+
+/* ============== INIT ============== */
+loadConversations();
+renderBoard();
+applyUI();
+renderConvoList();
+renderChat();
+</script>
+</body>
+</html>
