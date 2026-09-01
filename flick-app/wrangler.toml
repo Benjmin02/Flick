@@ -13,3 +13,7 @@ database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
 # Secret used to sign session cookies. Set it with:
 #   wrangler pages secret put SESSION_SECRET
 # (never commit the real value — this file only documents the name)
+# KV namespace binding
+[[kv_namespaces]]
+binding = "FLICK_KV"
+id = "4db4d470e1b34ba0b866e7fe6a46071a"
